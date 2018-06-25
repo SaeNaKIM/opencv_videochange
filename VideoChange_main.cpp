@@ -28,6 +28,7 @@ int main() {
 	VideoCapture cap(videoFilename);	
 	VideoChange VC(videoFilename,cap);
 	Mat frame;
+	Mat grayFrame;
 	Mat background;
 
 
@@ -53,10 +54,9 @@ int main() {
 			//curFrameLoc = cap.get(CAP_PROP_POS_FRAMES); //왜 안되냐 빡치게...
 			//cout << (double)cap.get(CAP_PROP_POS_MSEC) << endl;
 			curFrameLoc++;
-			VC.preprocess(frame, frame);
-			
-			VC.samplingVideoFrame(frame, curFrameLoc);
-			imshow("current Frame", frame);
+			VC.preprocess(frame, grayFrame);	
+			VC.samplingVideoFrame(grayFrame, curFrameLoc);
+			imshow("current Frame", grayFrame);
 		}
 
 		
@@ -74,9 +74,10 @@ int main() {
 
 	VC.backgroundEstimation(background,BG_MEAN);
 	imshow("background", background);
+	waitKey(0);
+	
 	VC.detectChangeFrame(DT_PIXEL, "video_change.txt");
 
-	waitKey(0);
 	destroyAllWindows();
 	VC.clearsampledImgV();
 	cap.release();

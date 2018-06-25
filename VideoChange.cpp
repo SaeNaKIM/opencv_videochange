@@ -91,7 +91,7 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename){
 
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
-	double pixelThreshold = 0.2;
+	double pixelThreshold = 0.02;
 	int imgSize = sampledImgV[0].rows * sampledImgV[0].cols;
 	
 	Mat absImg; 
@@ -103,12 +103,13 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename){
 		
 		setChangeGraph(sampledImgV.size()); // initialize chage graph
 
-		for (int i = 0; sampledImgV.size(); i++) {
+		for (int i = 0; i < sampledImgV.size(); i++) {
 
+			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl;
 			absImg = abs(sampledImgV[i] - this->background);
 			medianBlur(absImg, absImg,3); //For delete noise 
 			nonZeroCnt = countNonZero(absImg);
-			changeRate = (double)nonZeroCnt / imgSize;
+			changeRate = 1.0 - (double)nonZeroCnt / imgSize;
 			cout << "change rate: " << changeRate << "\n";
 
 			if (changeRate > pixelThreshold) {
