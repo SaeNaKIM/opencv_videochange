@@ -15,8 +15,8 @@ const int BG_MOG = 3;
 
 
 //change notification parameter option
-#define DT_PIXEL =  1;
-#define DT_BLOB = 2; 
+const int DT_PIXEL =  1;
+const int DT_BLOB = 2;
 
 
 const int SampleRate = 1;
@@ -50,7 +50,7 @@ int main() {
 			if (!cap.read(frame))
 				break;
 
-			//curFrameLoc = cap.get(CAP_PROP_POS_FRAMES);
+			//curFrameLoc = cap.get(CAP_PROP_POS_FRAMES); //왜 안되냐 빡치게...
 			//cout << (double)cap.get(CAP_PROP_POS_MSEC) << endl;
 			curFrameLoc++;
 			VC.preprocess(frame, frame);
@@ -74,10 +74,8 @@ int main() {
 
 	VC.backgroundEstimation(background,BG_MEAN);
 	imshow("background", background);
+	VC.detectChangeFrame(DT_PIXEL, "video_change.txt");
 
-
-
-	
 	waitKey(0);
 	destroyAllWindows();
 	VC.clearsampledImgV();

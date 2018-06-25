@@ -47,19 +47,22 @@ void VideoChange::samplingVideoFrame(Mat &frame ,double curFrameLoc) {
 } 
 void VideoChange::backgroundEstimation(Mat &background, int type ) {
 	
-	Mat sum(sampledImgV[0].size(), CV_64FC1);
+	Mat sum = Mat::zeros(sampledImgV[0].size(), CV_32FC1);
 	double sampledImgL = sampledImgV.size();
 
 
 
 	if (type == 1) { // mean 
 
-		for (int i = 0; sampledImgV.size(); i++) {
+		for (int i = 0; i < sampledImgV.size(); i++) {
 
 			accumulateWeighted(sampledImgV[i], sum, 1.0/sampledImgL);
 		
 		}
-		this->background = sum;
+
+		convertScaleAbs(sum,this->background);
+		//cout << "background channgel" << this->background.channels() << "type: " << this->background.type() << "\n";
+
 
 	}
 	else if (type == 2) { // median
@@ -78,8 +81,8 @@ void VideoChange::backgroundEstimation(Mat &background, int type ) {
 		return;
 	}
 
-	
-	background = this->background;
+	//imshow("background in function", this->background); //debug
+	background = this->background.clone();
 	return;
 }
 // compute difference between background image and sampled image and Save the interesting image(.png) and data(.txt)
@@ -106,18 +109,20 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename){
 			medianBlur(absImg, absImg,3); //For delete noise 
 			nonZeroCnt = countNonZero(absImg);
 			changeRate = (double)nonZeroCnt / imgSize;
+			cout << "change rate: " << changeRate << "\n";
 
 			if (changeRate > pixelThreshold) {
 				
 				// store image and time of the frame 
-				string filename = "frame_time" + to_string(i / samplingRate ) + ".png";
-				imwrite(filename,sampledImgV[i]);
-				imshow("absImg", absImg);
+				//string filename = "frame_time" + to_string(i / samplingRate ) + ".png";
+				//imwrite(filename,sampledImgV[i]);
+				imshow("change image", sampledImgV[i]);
+				imshow("abs image", absImg);
 				waitKey(0);
 
 			}
 
-			drawChangeGraph(i,changeRate);
+			//drawChangeGraph(i,changeRate);
 			outFile << i * sample << " " << changeRate << "\n"; // n-th frame 
 		}
 
@@ -127,6 +132,7 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename){
 		
 	}
 
+	imshow("change graph", changeGraph);
 	outFile.close();
 	return;
 }
