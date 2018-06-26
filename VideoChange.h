@@ -24,11 +24,11 @@ private :
 	float fps;
 	float cols;
 	float rows;
-	long double nframe;
+	double nframe;
 
 	//video control
 	bool stopFlag = false;
-	int samplingRate = 30;
+	int samplingRate = 1;
 	double sample = 0;
 
 
@@ -40,7 +40,7 @@ public :
 
 	void videoInfoPrint();
 
-	void samplingVideoFrame(Mat &Frame, double curFrameLoc);  
+	void samplingVideoFrame(Mat Frame, double curFrameLoc);  
 
 	void backgroundEstimation( Mat &background, int type );
 	

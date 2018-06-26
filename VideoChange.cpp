@@ -1,8 +1,8 @@
 #define  _CRT_SECURE_NO_WARNINGS
-
-#include <opencv2/opencv.hpp>
 #include <iostream> 
+#include <opencv2/opencv.hpp>
 #include <vector>
+#include <direct.h>
 #include "VideoChange.h"
 
 
@@ -15,7 +15,6 @@ VideoChange::VideoChange(string filename, VideoCapture cap) {
 	this->nframe = cap.get(CV_CAP_PROP_FRAME_COUNT);
 
 }
-
 void VideoChange::videoInfoPrint() {
 
 	
@@ -36,11 +35,13 @@ void VideoChange:: preprocess(Mat &src, Mat &dst) {
 
 }
 // sampling rate, videofile path,  output - sampledImg
-void VideoChange::samplingVideoFrame(Mat &frame ,double curFrameLoc) {
+void VideoChange::samplingVideoFrame(Mat frame ,double curFrameLoc) {
 
-	if ((int)curFrameLoc % (int)this->sample == 0) {
+	Mat tmp; 
+	tmp = frame.clone();
+	if (((int)curFrameLoc % (int)this->sample) == 0) {
 			
-		sampledImgV.push_back(frame); // 언제 clear 해줄건지 정해야함. * 벡터를 신중히 다룹시다..
+		sampledImgV.push_back(tmp); // 언제 clear 해줄건지 정해야함. * 벡터를 신중히 다룹시다..
 	
 	}
 
@@ -48,31 +49,46 @@ void VideoChange::samplingVideoFrame(Mat &frame ,double curFrameLoc) {
 void VideoChange::backgroundEstimation(Mat &background, int type ) {
 	
 	Mat sum = Mat::zeros(sampledImgV[0].size(), CV_32FC1);
-	double sampledImgL = sampledImgV.size();
+	Mat temp;
+	Mat avg;
 
+	double sampledImgL = sampledImgV.size();
 
 
 	if (type == 1) { // mean 
 
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
-			accumulateWeighted(sampledImgV[i], sum, 1.0/sampledImgL);
 		
+			accumulateWeighted(sampledImgV[i], sum, 1.0 / sampledImgL);
+			//sampledImgV[i].convertTo(temp, CV_32FC1);
+			//sum += temp;
+			//temp = temp / sampledImgL;
+			//accumulate(sampledImgV[i], sum);
+			//imshow("sum", sum);
+			//waitKey(30);
+
 		}
 
-		convertScaleAbs(sum,this->background);
+		convertScaleAbs(sum, this->background);
+		//this->background = sum / sampledImgL;
+		//sum.convertTo(avg, CV_8UC1, 1.0 / sampledImgL);
+		//this->background = sum / sampledImgL;
+		//imshow("background in function", avg);
+		//waitKey(0);
 		//cout << "background channgel" << this->background.channels() << "type: " << this->background.type() << "\n";
 
 
 	}
-	else if (type == 2) { // median
+	else if (type == 2) { // median of median 
 	
-	
+		
+		
 	
 	}
 	else if (type == 3) { // gaussian of mixture 
 
-
+	
 
 	}
 	else {
@@ -83,48 +99,66 @@ void VideoChange::backgroundEstimation(Mat &background, int type ) {
 
 	//imshow("background in function", this->background); //debug
 	background = this->background.clone();
+	//background = avg.clone();
 	return;
 }
-// compute difference between background image and sampled image and Save the interesting image(.png) and data(.txt)
+
+// compute difference between background image and sampled image. Save the interesting image(.png) and data(.csv)
 void VideoChange::detectChangeFrame(int detectType, string outfilename){
 
 
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
-	double pixelThreshold = 0.02;
+	double pixelThreshold = 0.10;
 	int imgSize = sampledImgV[0].rows * sampledImgV[0].cols;
 	
-	Mat absImg; 
-	ofstream outFile("output_video_change_rate.txt"); // default
-	//ofstream outFile(outputfilename);
+	Mat absImg;
+	Mat norm_frame;
+	Mat norm_bg;
+
+	ofstream outFile(outfilename);
+	char directory[] = { "C:\\Users\\Dev3Team\\source\\repos\\opencv_test1\\opencv_test1\\video_change" };
+	int nResult = _mkdir(directory);
 	
+	if (nResult == 0)
+	{
+		cout << "directory creation sucess" << endl; 
+	}
+	else { // directory already existed.
+
+		cout << "directory creation failed " << endl;
+	}
 
 	if (detectType == 1) { // pixel 
 		
 		setChangeGraph(sampledImgV.size()); // initialize chage graph
+		normalize(this->background, norm_bg, 1.0, 0.0, NORM_MINMAX);
 
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
-			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl;
-			absImg = abs(sampledImgV[i] - this->background);
-			medianBlur(absImg, absImg,3); //For delete noise 
+			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl; // debug
+			normalize(sampledImgV[i], norm_frame, 1.0, 0.0, NORM_MINMAX); // normalize data
+			absImg = abs(norm_frame - norm_bg);
 			nonZeroCnt = countNonZero(absImg);
-			changeRate = 1.0 - (double)nonZeroCnt / imgSize;
+			changeRate = (double)nonZeroCnt / imgSize;
 			cout << "change rate: " << changeRate << "\n";
 
 			if (changeRate > pixelThreshold) {
 				
 				// store image and time of the frame 
-				//string filename = "frame_time" + to_string(i / samplingRate ) + ".png";
-				//imwrite(filename,sampledImgV[i]);
+				string filename = string(directory) + "\\frame_" + to_string(i / samplingRate ) + ".png";
+				imwrite(filename,sampledImgV[i]);
+
+				//debugging    
 				imshow("change image", sampledImgV[i]);
 				imshow("abs image", absImg);
 				waitKey(0);
 
 			}
 
-			//drawChangeGraph(i,changeRate);
-			outFile << i * sample << " " << changeRate << "\n"; // n-th frame 
+
+			drawChangeGraph(i,changeRate);
+			outFile << i * sample << "," << changeRate << "\n"; // n-th frame 
 		}
 
 	}
@@ -140,8 +174,8 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename){
 void VideoChange::writeTime(Mat &frame, string timeContent) {
 
 
-}
 
+}
 void VideoChange::writeTime(ofstream fs, string timeContent){
 
 
@@ -150,7 +184,6 @@ void VideoChange::writeTime(ofstream fs, string timeContent){
 // parameter를 어떻게 만들 것인가 생각 해야함 
 void VideoChange::drawChangeGraph(int sampleNum, double changeRate) {
 
-	resize(this->changeGraph, this->changeGraph, Size(sampledImgV.size(),100));
 	circle(this->changeGraph, Point2f(sampleNum, changeRate * 100), 1, Scalar(255, 0, 0));
 }
 
