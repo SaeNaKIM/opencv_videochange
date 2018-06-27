@@ -40,11 +40,11 @@ public :
 
 	void videoInfoPrint();
 
-	void samplingVideoFrame(Mat Frame, double curFrameLoc);  
+	void samplingVideoFrame(Mat  Frame, double curFrameLoc);  
 
 	void backgroundEstimation( Mat &background, int type );
 	
-	void detectChangeFrame(int detectType, string outfilename); // compute difference between background image and samplec img and Save the interesting image(.png)
+	void detectChangeFrame(int detectType, string outfilename, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 
 	void writeTime(Mat &frame, string timeContent); // write time to image 
 

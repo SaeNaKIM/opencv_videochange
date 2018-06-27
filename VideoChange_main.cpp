@@ -12,42 +12,36 @@ const int BG_MEAN = 1;
 const int BG_MEDIAN = 2;
 const int BG_MOG = 3;
 
-
 //change notification parameter option
 const int DT_PIXEL =  1;
 const int DT_BLOB = 2;
 
 
-const int SampleRate = 2;
-double curFrameLoc = 0.0;
 
 int main() {
 
+	int key = 0 ;
+	int SampleRate = 2;
+	double curFrameLoc = 0.0;
 	
 	Mat frame;
 	Mat grayFrame;
 	Mat background;
+
 
 	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.h264";
 	//string videoFilename = "C:\\Users\\Dev3Team\\Desktop\\Video_1.mp4";
 	VideoCapture cap(videoFilename);
 	VideoChange VC(videoFilename, cap);
 
-
-	int key;
-
-	
 	if (!cap.isOpened()) {
 		cerr << "Video File Open Error" << endl;
 		exit(1);
 	}
 
 
-	VC.videoInfoPrint();
+	VC.videoInfoPrint(); 
 	VC.setSamplingRate(SampleRate);
-
-	Mat sum;
-	Mat avg; 
 
 	//video play
 	while (1)
@@ -58,7 +52,7 @@ int main() {
 				break;
 
 			//curFrameLoc = cap.get(CAP_PROP_POS_FRAMES); //왜 안되냐 빡치게...
-			//cout << (double)cap.get(CAP_PROP_POS_MSEC) << endl;
+			//cout << cap.get(CAP_PROP_POS_MSEC) << endl;
 			curFrameLoc++;
 			VC.preprocess(frame, grayFrame);	
 			VC.samplingVideoFrame(grayFrame, curFrameLoc);		
@@ -66,7 +60,7 @@ int main() {
 		}
 
 		
-		key = cv::waitKey(60);
+		key = cv::waitKey(10);
 		if (key == 27) {
 			cout << "terminated during video execution" << endl;
 			break;
@@ -81,8 +75,7 @@ int main() {
 	VC.backgroundEstimation(background, BG_MEAN);
 	imshow("background", background);
 	waitKey(0);
- 	VC.detectChangeFrame(DT_PIXEL, "video_change.csv");
-	waitKey(0);
+ 	VC.detectChangeFrame(DT_PIXEL, "video_change.csv", 0.06 );
 
 	//release resource
 	destroyAllWindows();
