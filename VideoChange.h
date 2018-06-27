@@ -46,15 +46,11 @@ public :
 	
 	void detectChangeFrame(int detectType, string outfilename, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 
-	void writeTime(Mat &frame, string timeContent); // write time to image 
-
-	void writeTime(ofstream fs, string timeContent); 
+	string computeTime(int curFrameLoc); // write time to image  
 
 	void drawChangeGraph(int sampleNum, double changeRate); // parameter를 어떻게 만들 것인가 생각 해야함...
 
 	void setFilename(string filename);
-
-	void setFimeStream();
 
 	void preprocess(Mat &src, Mat &dst);
 

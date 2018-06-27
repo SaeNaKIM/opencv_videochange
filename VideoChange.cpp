@@ -62,8 +62,8 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 			accumulateWeighted(sampledImgV[i], sum, 1.0 / sampledImgL);
 			//sampledImgV[i].convertTo(temp, CV_32FC1);
-			//sum += temp;
 			//temp = temp / sampledImgL;
+			//sum += temp;
 			//accumulate(sampledImgV[i], sum);
 			//imshow("sum", sum);
 			//waitKey(30);
@@ -145,7 +145,7 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 		equalizeHist(this->background, this->background);
 		imshow("equalized background", this->background);
 
-		//        cout << norm_bg;
+		// cout << norm_bg;
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
 			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl; // debug
@@ -171,36 +171,35 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 			changeRate = (double)nonZeroCnt / imgSize;
 			//cout << "change rate: " << changeRate << "\n";
 
-			
-
+		
 			if (changeRate > pixelThreshold) {
 
 				// store image and time of the frame 
-				string filename = string(directory) + "\\frame_" + to_string(i * sample / 60) + ".png";
+				string filename = string(directory) + "\\frame_" + to_string(i*this->sample/60) + ".png";
 				imwrite(filename, sampledImgV[i]);
 
 				//debugging    
-				imshow("change image", sampledImgV[i]);
+				//imshow("change image", sampledImgV[i]);
 				//absImg.convertTo(absImg, CV_8UC1);
 				
 				//normalize(absImg, norm_abs, 255, 0, NORM_MINMAX);
 				//normalize(absImg2,norm_abs2, 255, 0, NORM_MINMAX);
 				//log(log_abs, log_abs);
-		
-				imshow("norm abs image", absImg);
+
+				//imshow("norm abs image", absImg);
 				//normalize(thresholdImg, thresholdImg, 255, 0, NORM_MINMAX);
-				imshow("threshold image", thresholdImg);
+				//imshow("threshold image", thresholdImg);
 				//cout << absImg;
 				//cout << "\n";
 				//imshow("norm abs image2", norm_abs2);
 				//imshow("log abs image", log_abs);
 
 
-				waitKey(0);
+				//waitKey(0);
 			}
 
-			drawChangeGraph(i, changeRate);
-			outFile << i * sample / 60 << "," << changeRate << "\n"; // n-th frame 
+			//drawChangeGraph(i, changeRate);
+			outFile << to_string(i*this->sample / 60) << "," << changeRate << "\n"; // n-th frame 
 		}
 
 	}
@@ -209,19 +208,20 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 
 	}
 
-	imshow("change graph", changeGraph);
+	//imshow("change graph", changeGraph);
 	outFile.close();
 	return;
 }
-void VideoChange::writeTime(Mat &frame, string timeContent) {
-
-
-
+string VideoChange::computeTime(int curFrameLoc)
+{
+	//compute time 
+	int min = (int)curFrameLoc * sample / 60;
+	int sec = ((double)curFrameLoc * sample / 60.0 - min) * 60.0;
+	string current_time = to_string(min) + "." + to_string(sec);
+	
+	return current_time;
 }
-void VideoChange::writeTime(ofstream fs, string timeContent) {
 
-
-}
 
 // parameter를 어떻게 만들 것인가 생각 해야함 
 void VideoChange::drawChangeGraph(int sampleNum, double changeRate) {
@@ -234,11 +234,6 @@ void VideoChange::setFilename(string filename) {
 	this->filename = filename;
 }
 
-void VideoChange::setFimeStream() {
-
-
-
-}
 void VideoChange::videoControl(int key, double curFrameLoc)
 {
 	this->dstFrameLoc = curFrameLoc;

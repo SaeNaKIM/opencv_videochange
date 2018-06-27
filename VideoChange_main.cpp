@@ -1,6 +1,7 @@
 #define  _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <time.h>
 #include "VideoChange.h"
 
 
@@ -21,13 +22,14 @@ const int DT_BLOB = 2;
 int main() {
 
 	int key = 0 ;
-	int SampleRate = 2;
+	int SampleRate = 1;
 	double curFrameLoc = 0.0;
 	
 	Mat frame;
 	Mat grayFrame;
 	Mat background;
 
+	clock_t begin, end1, end2;
 
 	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.h264";
 	//string videoFilename = "C:\\Users\\Dev3Team\\Desktop\\Video_1.mp4";
@@ -43,6 +45,8 @@ int main() {
 	VC.videoInfoPrint(); 
 	VC.setSamplingRate(SampleRate);
 
+	begin = clock();
+
 	//video play
 	while (1)
 	{
@@ -56,11 +60,11 @@ int main() {
 			curFrameLoc++;
 			VC.preprocess(frame, grayFrame);	
 			VC.samplingVideoFrame(grayFrame, curFrameLoc);		
-			imshow("current Frame", grayFrame);
+			//imshow("current Frame", grayFrame);
 		}
 
 		
-		key = cv::waitKey(10);
+		//key = cv::waitKey(10);
 		if (key == 27) {
 			cout << "terminated during video execution" << endl;
 			break;
@@ -72,10 +76,20 @@ int main() {
 
 	}
 
+	end1 = clock();
+
 	VC.backgroundEstimation(background, BG_MEAN);
-	imshow("background", background);
-	waitKey(0);
+	//imshow("background", background);
+	//waitKey(0);
+
  	VC.detectChangeFrame(DT_PIXEL, "video_change.csv", 0.06 );
+
+	end2 = clock();
+
+	cout << "total frame: " << curFrameLoc << endl;
+	cout << "sampling execution time:" << (end1 - begin) / CLOCKS_PER_SEC << endl;
+	cout << "total execution time:" << (end2 - begin) / CLOCKS_PER_SEC << endl;
+	system("pause");
 
 	//release resource
 	destroyAllWindows();
