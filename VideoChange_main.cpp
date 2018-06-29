@@ -83,7 +83,7 @@ int main() {
 
 	//release resource
 	destroyAllWindows();
-	VC.clearsampledImgV();
+	VC.clear();
 	cap.release();
 
 	// image processing result 

@@ -14,9 +14,10 @@ private :
 	
 	string filename;
 	vector<Mat> sampledImgV;
+	vector<string> changeRateV;
 	Mat background;
 	Mat changeGraph;
-	ofstream fs;
+	ofstream outFile;
 
 	 double dstFrameLoc;
 
@@ -25,6 +26,7 @@ private :
 	float cols;
 	float rows;
 	double nframe;
+	char directory[10];
 
 	//video control
 	bool stopFlag = false;
@@ -44,11 +46,15 @@ public :
 
 	void backgroundEstimation( Mat &background, int type );
 	
-	double detectChangeFrame(int begin, int end);
+	double detectChangeFrame(int begin, int end, double pixelThreshold);
 
 	void detectChangeFrame(int detectType, string outfilename, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 
 	string computeTime(int curFrameLoc); // write time to image  
+
+	void writeChangeRate();
+
+	void storeChangeRate(string storeValue);
 
 	void preprocess(Mat &src, Mat &dst);
 
@@ -58,11 +64,17 @@ public :
 
 	void setSamplingRate(double samplingRate);
 
-	void setFilename(string filename);
+	void setInFilename(string filename);
+
+	void setOutFilename(string filename);
 
 	double getFrameLoc();
 
 	double getSampleNumber();
 
-	void clearsampledImgV();
+	void clear();
+
+	void thread_exercise();
+	
+	void thread_1(int i );
 };

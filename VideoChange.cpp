@@ -10,7 +10,7 @@
 
 VideoChange::VideoChange(string filename, VideoCapture cap) {
 
-	setFilename(filename);
+	setInFilename(filename);
 	this->fps = cap.get(CV_CAP_PROP_FPS);
 	this->cols = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	this->rows = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -87,7 +87,7 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 	background = this->background.clone();
 	return;
 }
-double VideoChange::detectChangeFrame(int begin, int end)
+double VideoChange::detectChangeFrame(int begin, int end, double pixelThreshold)
 {
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
@@ -105,6 +105,21 @@ double VideoChange::detectChangeFrame(int begin, int end)
 		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
 		nonZeroCnt = countNonZero(thresholdImg);
 		changeRate = (double)nonZeroCnt / imgSize;
+
+
+		if (changeRate > pixelThreshold) {
+
+			// store image and time of the frame 
+			string filename = string(directory) + "\\frame_" + to_string(i*this->sample / this->fps) + ".png";
+			imwrite(filename, sampledImgV[i]);
+
+			//debugging    
+			//imshow("change image", sampledImgV[i]);
+			//imshow("abs image", absImg);
+			//imshow("threshold image", thresholdImg);
+			//waitKey(0);
+		}
+
 
 	}
 
@@ -124,7 +139,6 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 
 	ofstream outFile(outfilename + ".csv");
 	char directory[] = {"video_change"};
-	
 	int nResult = _mkdir(directory);
 
 	if (nResult == 0)
@@ -153,8 +167,10 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 			//cout << "change rate: " << changeRate << "\n";
 			
 
-			//thread t1(&detectChangeFrame, 0, sampledImgV.size() / 2);
-			//thread t2(&detectChangeFrame, sampledImgV.size() / 2, sampledImgV.size());
+			//thread t1{ &detectChangeFrame, 0, (int)sampledImgV.size() / 2 };
+			//thread t2{&detectChangeFrame, sampledImgV.size() / 2 + 1, sampledImgV.size()};
+			// when do i have to do this meaningless programming 
+			// i want to took a rest 
 
 
 
@@ -170,6 +186,9 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 				//imshow("threshold image", thresholdImg);
 				//waitKey(0);
 			}
+
+			string storeStr = to_string(this->sample / this->fps) + "," + to_string(changeRate) + "\n";
+			storeChangeRate(storeStr);
 			//outFile << to_string(i*this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
 			cout << to_string(this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
 		}
@@ -192,7 +211,7 @@ string VideoChange::computeTime(int curFrameLoc)
 
 	return current_time;
 }
-void VideoChange::setFilename(string filename) {
+void VideoChange::setInFilename(string filename) {
 
 	this->filename = filename;
 }
@@ -233,6 +252,26 @@ bool VideoChange::isStop()
 	return stopFlag;
 }
 
+void VideoChange::setOutFilename(string filename)
+{
+
+	this->outFile.open(filename + ".csv");
+	//this->directory = { "video_change" };
+	char directory[] = { "video_change" };
+	int nResult = _mkdir(directory);
+
+	if (nResult == 0)
+	{
+		cout << "directory creation sucess" << endl;
+	}
+	else { // directory already existed.
+
+		cout << "directory creation failed " << endl;
+	}
+
+	return;
+}
+
 double VideoChange::getFrameLoc()
 {
 	return dstFrameLoc - 1;
@@ -244,11 +283,44 @@ void VideoChange::setSamplingRate(double samplingRate)
 	this->sample = this->fps / this->samplingRate;
 }
 
-void VideoChange::clearsampledImgV()
+void VideoChange::clear()
 {
 	this->sampledImgV.clear();
+	this->changeRateV.clear();
 }
 double VideoChange::getSampleNumber()
 {
 	return this->sample;
+}
+void VideoChange::writeChangeRate() {
+		
+}
+void VideoChange::storeChangeRate(string storeValue) {
+
+	this->outFile << storeValue;
+
+}
+void VideoChange::thread_exercise() {
+	
+	// there is no meaningfull code 
+	// because it is just exercise 
+	// fridat to sleepty. good night daa 
+	
+	//thread t1{ thread_1, 1 };
+	//thread t2{ thread_1, 2 };
+
+	//t1.join();
+	//t2.join();
+
+
+
+	return; 
+}
+void VideoChange::thread_1(int i ) {
+
+	for (int i = 0; i < 10; i++) {
+		cout << to_string(i) << endl;
+	}
+	return; 
+
 }
