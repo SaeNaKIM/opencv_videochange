@@ -28,7 +28,7 @@ private :
 
 	//video control
 	bool stopFlag = false;
-	int samplingRate = 1;
+	double samplingRate = 1;
 	double sample = 0;
 
 
@@ -40,29 +40,29 @@ public :
 
 	void videoInfoPrint();
 
-	void samplingVideoFrame(Mat  Frame, double curFrameLoc);  
+	void samplingVideoFrame(Mat Frame);  
 
 	void backgroundEstimation( Mat &background, int type );
 	
+	double detectChangeFrame(int begin, int end);
+
 	void detectChangeFrame(int detectType, string outfilename, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 
 	string computeTime(int curFrameLoc); // write time to image  
 
-	void drawChangeGraph(int sampleNum, double changeRate); // parameter를 어떻게 만들 것인가 생각 해야함...
-
-	void setFilename(string filename);
-
 	void preprocess(Mat &src, Mat &dst);
 
-	void videoControl(int key, double curFrameLoc);
+	void controlVideo(int key, double curFrameLoc);
 
 	bool isStop();
 
+	void setSamplingRate(double samplingRate);
+
+	void setFilename(string filename);
+
 	double getFrameLoc();
 
-	void setSamplingRate(int samplingRate);
+	double getSampleNumber();
 
 	void clearsampledImgV();
-
-	void setChangeGraph(int width);
 };

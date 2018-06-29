@@ -21,7 +21,7 @@ int main() {
 
 	int key = 0 ;
 	double SampleRate = 1;
-	int curFrameLoc = 0.0;
+	int frameCount = 0.0;
 	int sample = 0;
 	double sum = 0;
 
@@ -50,8 +50,8 @@ int main() {
 	{
 		read_begin = clock();
 
-		cap.set(CV_CAP_PROP_POS_FRAMES, curFrameLoc * sample);
-		curFrameLoc++;
+		cap.set(CV_CAP_PROP_POS_FRAMES, frameCount * sample); 
+		frameCount++;
 		if (!cap.read(frame))
 			break;
 
@@ -59,11 +59,11 @@ int main() {
 		sum += read_end - read_begin;
 		
 		VC.preprocess(frame, grayFrame);
-		VC.samplingVideoFrame(grayFrame);
+		VC.samplingVideoFrame(grayFrame); 
 			
 		imshow("sampling Frame", grayFrame);
-
 		key = waitKey(1);
+
 		if (key == 27) { //ESC
 			cout << "terminated during video sampling" << endl;
 			break;
@@ -81,18 +81,18 @@ int main() {
  	VC.detectChangeFrame(DT_PIXEL, "video_change", 0.06 );
 	total_end = clock();
 
-	// image processing result 
-	cout << "sampling frame: " << curFrameLoc << endl;
-	cout << "image read execution time:" << sum / CLOCKS_PER_SEC  << endl;
-	cout << "average read execution time per frame:" << sum / CLOCKS_PER_SEC / curFrameLoc << endl;
-	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
-	cout << "total execution time:" << (total_end - begin) / CLOCKS_PER_SEC << endl;
-	system("pause");
-
 	//release resource
 	destroyAllWindows();
 	VC.clearsampledImgV();
 	cap.release();
+
+	// image processing result 
+	cout << "sampling frame: " << frameCount << endl;
+	cout << "image read execution time:" << sum / CLOCKS_PER_SEC  << endl;
+	cout << "average read execution time per frame:" << sum / CLOCKS_PER_SEC / frameCount << endl;
+	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
+	cout << "total execution time:" << (total_end - begin) / CLOCKS_PER_SEC << endl;
+	system("pause");
 	
 	return 0;
 }

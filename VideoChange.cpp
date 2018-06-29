@@ -7,6 +7,7 @@
 #include "VideoChange.h"
 
 
+
 VideoChange::VideoChange(string filename, VideoCapture cap) {
 
 	setFilename(filename);
@@ -86,6 +87,29 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 	background = this->background.clone();
 	return;
 }
+double VideoChange::detectChangeFrame(int begin, int end)
+{
+	int nonZeroCnt = 0;
+	double changeRate = 0.0f;
+	int imgSize = sampledImgV[begin].rows * sampledImgV[begin].cols;
+
+	Mat hist_frame;
+	Mat absImg;
+	Mat thresholdImg;
+
+	for (int i = begin; i < end; i++) {
+	
+		equalizeHist(sampledImgV[i], hist_frame);
+		absImg = abs(hist_frame - this->background);
+
+		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
+		nonZeroCnt = countNonZero(thresholdImg);
+		changeRate = (double)nonZeroCnt / imgSize;
+
+	}
+
+	return changeRate;
+}
 // compute difference between background image and sampled image. Save the interesting image(.png) and data(.csv)
 void VideoChange::detectChangeFrame(int detectType, string outfilename, double pixelThreshold) {
 
@@ -118,6 +142,7 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
+			
 			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl; // debug
 			equalizeHist(sampledImgV[i], hist_frame);
 			absImg = abs(hist_frame - this->background);
@@ -126,7 +151,13 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 			nonZeroCnt = countNonZero(thresholdImg);
 			changeRate = (double)nonZeroCnt / imgSize;
 			//cout << "change rate: " << changeRate << "\n";
-		
+			
+
+			//thread t1(&detectChangeFrame, 0, sampledImgV.size() / 2);
+			//thread t2(&detectChangeFrame, sampledImgV.size() / 2, sampledImgV.size());
+
+
+
 			if (changeRate > pixelThreshold) {
 
 				// store image and time of the frame 
@@ -139,7 +170,8 @@ void VideoChange::detectChangeFrame(int detectType, string outfilename, double p
 				//imshow("threshold image", thresholdImg);
 				//waitKey(0);
 			}
-			outFile << to_string(i*this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
+			//outFile << to_string(i*this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
+			cout << to_string(this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
 		}
 
 	}
