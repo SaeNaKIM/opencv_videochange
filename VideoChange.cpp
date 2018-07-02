@@ -4,9 +4,12 @@
 #include <vector>
 #include <direct.h>
 #include <thread>
+#include <mutex>
 #include "VideoChange.h"
 
 
+using namespace std;
+using namespace cv;
 
 VideoChange::VideoChange(string filename, VideoCapture cap) {
 
@@ -15,7 +18,7 @@ VideoChange::VideoChange(string filename, VideoCapture cap) {
 	this->cols = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	this->rows = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	this->nframe = cap.get(CV_CAP_PROP_FRAME_COUNT);
-
+	
 }
 void VideoChange::videoInfoPrint() {
 
@@ -33,11 +36,11 @@ void VideoChange::preprocess(Mat &src, Mat &dst) {
 
 	Mat gray;
 	Mat resizeMat;
-
+	
 	cvtColor(src, gray, CV_BGR2GRAY); // convert channel 3 to 1 
 	resize(gray, resizeMat, Size(gray.cols / 4, gray.rows / 4));
-	GaussianBlur(resizeMat, dst, Size(3, 3), 0); //Blurring 
-
+	GaussianBlur(resizeMat, dst, Size(3,3),0); //Blurring 
+	
 }
 void VideoChange::samplingVideoFrame(Mat frame) {
 
@@ -83,11 +86,10 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 		return;
 	}
 
-	//imshow("background in function", this->background); waitKey(0); //debug
 	background = this->background.clone();
 	return;
 }
-double VideoChange::detectChangeFrame(int begin, int end, double pixelThreshold)
+double VideoChange::threadForDetectChangeFrame(int begin, int end, double pixelThreshold)
 {
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
@@ -99,9 +101,9 @@ double VideoChange::detectChangeFrame(int begin, int end, double pixelThreshold)
 
 	for (int i = begin; i < end; i++) {
 	
+		
 		equalizeHist(sampledImgV[i], hist_frame);
 		absImg = abs(hist_frame - this->background);
-
 		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
 		nonZeroCnt = countNonZero(thresholdImg);
 		changeRate = (double)nonZeroCnt / imgSize;
@@ -110,7 +112,7 @@ double VideoChange::detectChangeFrame(int begin, int end, double pixelThreshold)
 		if (changeRate > pixelThreshold) {
 
 			// store image and time of the frame 
-			string filename = string(directory) + "\\frame_" + to_string(i*this->sample / this->fps) + ".png";
+			string filename = string(this->directory) + "\\frame_" + to_string(i*this->sample / this->fps) + ".png";
 			imwrite(filename, sampledImgV[i]);
 
 			//debugging    
@@ -120,96 +122,50 @@ double VideoChange::detectChangeFrame(int begin, int end, double pixelThreshold)
 			//waitKey(0);
 		}
 
-
+		changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+		
 	}
 
 	return changeRate;
 }
 // compute difference between background image and sampled image. Save the interesting image(.png) and data(.csv)
-void VideoChange::detectChangeFrame(int detectType, string outfilename, double pixelThreshold) {
-
-
-	int nonZeroCnt = 0;
-	double changeRate = 0.0f;
-	int imgSize = sampledImgV[0].rows * sampledImgV[0].cols;
+void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 
 	Mat absImg;
-	Mat thresholdImg;
-	Mat hist_frame;
-
-	ofstream outFile(outfilename + ".csv");
-	char directory[] = {"video_change"};
-	int nResult = _mkdir(directory);
-
-	if (nResult == 0)
-	{
-		cout << "directory creation sucess" << endl;
-	}
-	else { // directory already existed.
-
-		cout << "directory creation failed " << endl;
-	}
+	int sampledImgVLength = sampledImgV.size() ;
 
 	if (detectType == 1) { // pixel 
 
 		equalizeHist(this->background, this->background);
 
-		for (int i = 0; i < sampledImgV.size(); i++) {
+		thread t1{&VideoChange::threadForDetectChangeFrame, this, 0, sampledImgVLength/4, pixelThreshold };
+		thread t2{&VideoChange::threadForDetectChangeFrame, this, sampledImgVLength/4+1, sampledImgVLength/4, pixelThreshold};
+		thread t3{ &VideoChange::threadForDetectChangeFrame, this, 2*sampledImgVLength/4+1, 3*sampledImgVLength/4, pixelThreshold };
+		thread t4{ &VideoChange::threadForDetectChangeFrame, this, 3*sampledImgVLength/4+1, sampledImgVLength, pixelThreshold };
 
-			
-			//cout << "channel: " << sampledImgV[i].channels() << this->background.channels() << endl; // debug
-			equalizeHist(sampledImgV[i], hist_frame);
-			absImg = abs(hist_frame - this->background);
-			
-			threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
-			nonZeroCnt = countNonZero(thresholdImg);
-			changeRate = (double)nonZeroCnt / imgSize;
-			//cout << "change rate: " << changeRate << "\n";
-			
+		t1.join();
+		t2.join();
+		t3.join();
+		t4.join();
 
-			//thread t1{ &detectChangeFrame, 0, (int)sampledImgV.size() / 2 };
-			//thread t2{&detectChangeFrame, sampledImgV.size() / 2 + 1, sampledImgV.size()};
-			// when do i have to do this meaningless programming 
-			// i want to took a rest 
-
-
-
-			if (changeRate > pixelThreshold) {
-
-				// store image and time of the frame 
-				string filename = string(directory) + "\\frame_" + to_string(i*this->sample/ this->fps) + ".png";
-				imwrite(filename, sampledImgV[i]);
-
-				//debugging    
-				//imshow("change image", sampledImgV[i]);
-				//imshow("abs image", absImg);
-				//imshow("threshold image", thresholdImg);
-				//waitKey(0);
-			}
-
-			string storeStr = to_string(this->sample / this->fps) + "," + to_string(changeRate) + "\n";
-			storeChangeRate(storeStr);
-			//outFile << to_string(i*this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
-			cout << to_string(this->sample / this->fps) << "," << changeRate << "\n"; // n-th frame 
-		}
+		cout << "thread is finished" << endl;
 
 	}
-	else if (detectType == 2) { //blob - threshold ÇÊ¿ä
-
+	else if (detectType == 2) { //blob 
 
 	}
 
-	outFile.close();
 	return;
 }
 string VideoChange::computeTime(int curFrameLoc)
 {
 	//compute time 
-	int min = (int)curFrameLoc * sample / 60;
-	int sec = ((double)curFrameLoc * sample / 60.0 - min) * 60.0;
-	string current_time = to_string(min) + "." + to_string(sec);
 
-	return current_time;
+	double t = 60;
+	int min = (int)curFrameLoc * sample / t;
+	int sec = ((double)curFrameLoc * sample / t - min) * t;
+	
+	return to_string(min) + "." + to_string(sec);
 }
 void VideoChange::setInFilename(string filename) {
 
@@ -220,11 +176,10 @@ void VideoChange::controlVideo(int key, double curFrameLoc)
 {
 	this->dstFrameLoc = curFrameLoc;
 
-
-	if (key == 32)
+	if (key == 32) //space
 	{
 		//stop Toggle
-		stopFlag = (stopFlag == true ? false : true);
+		this->stopFlag = (this->stopFlag == true ? false : true);
 
 	}
 	else if (key == ']')
@@ -251,15 +206,16 @@ bool VideoChange::isStop()
 {
 	return stopFlag;
 }
-
 void VideoChange::setOutFilename(string filename)
 {
-
+	// csv file open
 	this->outFile.open(filename + ".csv");
-	//this->directory = { "video_change" };
-	char directory[] = { "video_change" };
-	int nResult = _mkdir(directory);
+	strcpy(this->directory, filename.c_str());
+	changeRateArr = new string[this->sampledImgV.size()];
 
+	// make directory 
+	int nResult = _mkdir(this->directory);
+	
 	if (nResult == 0)
 	{
 		cout << "directory creation sucess" << endl;
@@ -271,56 +227,34 @@ void VideoChange::setOutFilename(string filename)
 
 	return;
 }
-
 double VideoChange::getFrameLoc()
 {
 	return dstFrameLoc - 1;
 }
-
 void VideoChange::setSamplingRate(double samplingRate)
 {
 	this->samplingRate = samplingRate;
 	this->sample = this->fps / this->samplingRate;
 }
-
 void VideoChange::clear()
 {
 	this->sampledImgV.clear();
-	this->changeRateV.clear();
+	delete []changeRateArr;
+	
 }
 double VideoChange::getSampleNumber()
 {
 	return this->sample;
 }
 void VideoChange::writeChangeRate() {
+
+	for (int i = 0; i < sampledImgV.size(); i++) {
 		
+		outFile << changeRateArr[i];
+	}	
 }
 void VideoChange::storeChangeRate(string storeValue) {
 
 	this->outFile << storeValue;
-
-}
-void VideoChange::thread_exercise() {
-	
-	// there is no meaningfull code 
-	// because it is just exercise 
-	// fridat to sleepty. good night daa 
-	
-	//thread t1{ thread_1, 1 };
-	//thread t2{ thread_1, 2 };
-
-	//t1.join();
-	//t2.join();
-
-
-
-	return; 
-}
-void VideoChange::thread_1(int i ) {
-
-	for (int i = 0; i < 10; i++) {
-		cout << to_string(i) << endl;
-	}
-	return; 
 
 }

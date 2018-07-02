@@ -23,16 +23,20 @@ int main() {
 	double SampleRate = 1;
 	int frameCount = 0.0;
 	int sample = 0;
-	double sum = 0;
+	double sum_read = 0;
+	double sum_pre = 0;
+	double sum_push = 0;
+
+	clock_t begin, read_begin, read_end, sampling_end, total_end, 
+		preprocess_begin, preprocess_end, push_begin, push_end;
+
+	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.mp4";
+	VideoCapture cap(videoFilename);
 
 	Mat frame;
 	Mat grayFrame;
 	Mat background;
-
-	clock_t begin, read_begin, read_end, sampling_end, total_end;
-
-	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.mp4";
-	VideoCapture cap(videoFilename);
+	
 	
 	if (!cap.isOpened()) {
 		cerr << "Video File Open Error" << endl;
@@ -43,43 +47,51 @@ int main() {
 	VC.videoInfoPrint(); 
 	VC.setSamplingRate(SampleRate);
 	sample = VC.getSampleNumber();
+	
 	begin = clock();
 
 	//video sampling
 	while (1)
 	{
 		read_begin = clock();
-
 		cap.set(CV_CAP_PROP_POS_FRAMES, frameCount * sample); 
-		frameCount++;
+		
 		if (!cap.read(frame))
 			break;
+		frameCount++;
 
 		read_end = clock();
-		sum += read_end - read_begin;
+		sum_read += read_end - read_begin;
 		
+		preprocess_begin = clock();
 		VC.preprocess(frame, grayFrame);
+		preprocess_end = clock();
+		sum_pre += preprocess_end - preprocess_begin;
+
 		VC.samplingVideoFrame(grayFrame); 
-			
+
 		imshow("sampling Frame", grayFrame);
 		key = waitKey(1);
 
 		if (key == 27) { //ESC
-			cout << "terminated during video sampling" << endl;
+			cout << "terminated during sampling video" << endl;
 			break;
 		}
+
 
 	}
 
 	sampling_end = clock();
 	VC.backgroundEstimation(background, BG_MEAN);
 	
-	//debugging background result
+	VC.setOutFilename("video_change");
+	VC.detectChangeFrame(DT_PIXEL, 0.06);
+	VC.writeChangeRate();
+	total_end = clock();
+
+	//debugging - background result
 	//imshow("background", background);
 	//waitKey(0);
-
- 	VC.detectChangeFrame(DT_PIXEL, "video_change", 0.06 );
-	total_end = clock();
 
 	//release resource
 	destroyAllWindows();
@@ -88,9 +100,11 @@ int main() {
 
 	// image processing result 
 	cout << "sampling frame: " << frameCount << endl;
-	cout << "image read execution time:" << sum / CLOCKS_PER_SEC  << endl;
-	cout << "average read execution time per frame:" << sum / CLOCKS_PER_SEC / frameCount << endl;
+	cout << "image read execution time:" << sum_read / CLOCKS_PER_SEC  << endl;
+	cout << "image preprocess execution time:" << sum_pre / CLOCKS_PER_SEC << endl;
+	cout << "average read execution time per frame:" << sum_read / CLOCKS_PER_SEC / frameCount << endl;
 	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
+	cout << "change detect execution time:" << (total_end - sampling_end) / CLOCKS_PER_SEC << endl;
 	cout << "total execution time:" << (total_end - begin) / CLOCKS_PER_SEC << endl;
 	system("pause");
 	

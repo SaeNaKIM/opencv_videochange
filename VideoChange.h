@@ -1,5 +1,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <mutex>
 
 
 using namespace std;
@@ -10,30 +11,29 @@ class VideoChange
 {
 
 private : 
-
 	
 	string filename;
 	vector<Mat> sampledImgV;
-	vector<string> changeRateV;
+	string *changeRateArr;
 	Mat background;
-	Mat changeGraph;
 	ofstream outFile;
 
-	 double dstFrameLoc;
+	double dstFrameLoc;
 
-	//file information
+	//input video file information
 	float fps;
 	float cols;
 	float rows;
 	double nframe;
-	char directory[10];
+	char directory[50];
 
 	//video control
 	bool stopFlag = false;
 	double samplingRate = 1;
 	double sample = 0;
 
-
+	//thread
+	mutex mutex_lock;
 
 public :
 
@@ -46,9 +46,9 @@ public :
 
 	void backgroundEstimation( Mat &background, int type );
 	
-	double detectChangeFrame(int begin, int end, double pixelThreshold);
+	double threadForDetectChangeFrame(int begin, int end, double pixelThreshold);
 
-	void detectChangeFrame(int detectType, string outfilename, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
+	void detectChangeFrame(int detectType,  double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 
 	string computeTime(int curFrameLoc); // write time to image  
 
@@ -74,7 +74,4 @@ public :
 
 	void clear();
 
-	void thread_exercise();
-	
-	void thread_1(int i );
 };
