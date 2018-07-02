@@ -18,7 +18,7 @@ VideoChange::VideoChange(string filename, VideoCapture cap) {
 	this->cols = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	this->rows = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	this->nframe = cap.get(CV_CAP_PROP_FRAME_COUNT);
-	
+
 }
 void VideoChange::videoInfoPrint() {
 
@@ -36,11 +36,11 @@ void VideoChange::preprocess(Mat &src, Mat &dst) {
 
 	Mat gray;
 	Mat resizeMat;
-	
+
 	cvtColor(src, gray, CV_BGR2GRAY); // convert channel 3 to 1 
 	resize(gray, resizeMat, Size(gray.cols / 4, gray.rows / 4));
 	//GaussianBlur(resizeMat, dst, Size(3,3),0); //Blurring 
-	
+
 }
 void VideoChange::samplingVideoFrame(Mat frame) {
 
@@ -50,6 +50,9 @@ void VideoChange::samplingVideoFrame(Mat frame) {
 
 }
 void VideoChange::backgroundEstimation(Mat &background, int type) {
+
+	clock_t begin, end;
+	begin = clock();
 
 	Mat sum = Mat::zeros(sampledImgV[0].size(), CV_32FC1);
 	Mat temp;
@@ -88,6 +91,8 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 	}
 
 	background = this->background.clone();
+	end = clock();
+	cout << "background time in func: " << (double)end - begin / CLOCKS_PER_SEC;
 	return;
 }
 void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelThreshold)
@@ -101,8 +106,8 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 	Mat thresholdImg;
 
 	for (int i = begin; i < end; i++) {
-	
-		
+
+
 		equalizeHist(sampledImgV[i], hist_frame);
 		absImg = abs(hist_frame - this->background);
 		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
@@ -124,10 +129,10 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 		}
 
 		changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
-		
+
 	}
 
-	return ;
+	return;
 }
 void VideoChange::threadForDetectChangeFrame2(Mat &src, Mat &dst, int i)
 {
@@ -163,13 +168,16 @@ void VideoChange::threadForDetectChangeFrame2(Mat &src, Mat &dst, int i)
 
 																								   //}
 
-	return ;
+	return;
 }
 // compute difference between background image and sampled image. Save the interesting image(.png) and data(.csv)
 void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 
+	clock_t begin, end;
+	begin = clock();
+
 	Mat absImg;
-	int sampledImgVLength = sampledImgV.size() ;
+	int sampledImgVLength = sampledImgV.size();
 
 	if (detectType == 1) { // pixel 
 
@@ -192,6 +200,9 @@ void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 
 	}
 
+	end = clock();
+	cout << "change detection time in func: " << (double)end - begin / CLOCKS_PER_SEC;
+
 	return;
 }
 string VideoChange::computeTime(int curFrameLoc)
@@ -201,7 +212,7 @@ string VideoChange::computeTime(int curFrameLoc)
 	double t = 60;
 	int min = (int)curFrameLoc * sample / t;
 	int sec = ((double)curFrameLoc * sample / t - min) * t;
-	
+
 	return to_string(min) + "." + to_string(sec);
 }
 void VideoChange::setInFilename(string filename) {
@@ -252,7 +263,7 @@ void VideoChange::setOutFilename(string filename)
 
 	// make directory 
 	int nResult = _mkdir(this->directory);
-	
+
 	if (nResult == 0)
 	{
 		cout << "directory creation sucess" << endl;
@@ -276,8 +287,8 @@ void VideoChange::setSamplingRate(double samplingRate)
 void VideoChange::clear()
 {
 	this->sampledImgV.clear();
-	delete []changeRateArr;
-	
+	delete[]changeRateArr;
+
 }
 double VideoChange::getSampleNumber()
 {
@@ -286,9 +297,9 @@ double VideoChange::getSampleNumber()
 void VideoChange::writeChangeRate() {
 
 	for (int i = 0; i < sampledImgV.size(); i++) {
-		
+
 		outFile << changeRateArr[i];
-	}	
+	}
 }
 void VideoChange::storeChangeRate(string storeValue) {
 
