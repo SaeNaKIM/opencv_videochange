@@ -16,6 +16,8 @@ private :
 	vector<Mat> sampledImgV;
 	string *changeRateArr;
 	Mat background;
+	Mat background_left;
+	Mat background_right;
 	ofstream outFile;
 
 	double dstFrameLoc;
@@ -34,6 +36,7 @@ private :
 
 	//thread
 	mutex mutex_lock;
+	double pixelThreshold = 0.06;
 
 public :
 
@@ -46,7 +49,9 @@ public :
 
 	void backgroundEstimation( Mat &background, int type );
 	
-	double threadForDetectChangeFrame(int begin, int end, double pixelThreshold);
+	void threadForDetectChangeFrame1(int begin, int end, double pixelThreshold);
+
+	void threadForDetectChangeFrame2(Mat &src, Mat &dst, int i);
 
 	void detectChangeFrame(int detectType,  double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 

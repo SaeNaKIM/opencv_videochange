@@ -39,7 +39,7 @@ void VideoChange::preprocess(Mat &src, Mat &dst) {
 	
 	cvtColor(src, gray, CV_BGR2GRAY); // convert channel 3 to 1 
 	resize(gray, resizeMat, Size(gray.cols / 4, gray.rows / 4));
-	GaussianBlur(resizeMat, dst, Size(3,3),0); //Blurring 
+	//GaussianBlur(resizeMat, dst, Size(3,3),0); //Blurring 
 	
 }
 void VideoChange::samplingVideoFrame(Mat frame) {
@@ -54,6 +54,7 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 	Mat sum = Mat::zeros(sampledImgV[0].size(), CV_32FC1);
 	Mat temp;
 	Mat avg;
+	Mat blur;
 
 	double sampledImgL = sampledImgV.size();
 
@@ -62,8 +63,8 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
-
-			accumulateWeighted(sampledImgV[i], sum, 1.0 / sampledImgL);
+			GaussianBlur(sampledImgV[i], sampledImgV[i], Size(3, 3), 0);
+			accumulateWeighted(blur, sum, 1.0 / sampledImgL);
 		}
 
 		convertScaleAbs(sum, this->background);
@@ -89,7 +90,7 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 	background = this->background.clone();
 	return;
 }
-double VideoChange::threadForDetectChangeFrame(int begin, int end, double pixelThreshold)
+void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelThreshold)
 {
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
@@ -126,7 +127,43 @@ double VideoChange::threadForDetectChangeFrame(int begin, int end, double pixelT
 		
 	}
 
-	return changeRate;
+	return ;
+}
+void VideoChange::threadForDetectChangeFrame2(Mat &src, Mat &dst, int i)
+{
+	int nonZeroCnt = 0;
+	double changeRate = 0.0f;
+	int imgSize = src.rows * src.cols;
+
+	Mat hist_frame;
+	Mat absImg;
+	Mat thresholdImg;
+
+	equalizeHist(src, hist_frame);
+	absImg = abs(hist_frame - background);
+	threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
+	nonZeroCnt = countNonZero(thresholdImg);
+	changeRate = (double)nonZeroCnt / imgSize;
+
+
+	if (changeRate > this->pixelThreshold) {
+
+		// store image and time of the frame 
+		string filename = string(this->directory) + "\\frame_" + to_string(i*this->sample / this->fps) + ".png";
+		imwrite(filename, sampledImgV[i]);
+
+		//debugging    
+		//imshow("change image", sampledImgV[i]);
+		//imshow("abs image", absImg);
+		//imshow("threshold image", thresholdImg);
+		//waitKey(0);
+	}
+
+	changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+
+																								   //}
+
+	return ;
 }
 // compute difference between background image and sampled image. Save the interesting image(.png) and data(.csv)
 void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
@@ -138,15 +175,15 @@ void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 
 		equalizeHist(this->background, this->background);
 
-		thread t1{&VideoChange::threadForDetectChangeFrame, this, 0, sampledImgVLength/4, pixelThreshold };
-		thread t2{&VideoChange::threadForDetectChangeFrame, this, sampledImgVLength/4+1, sampledImgVLength/4, pixelThreshold};
-		thread t3{ &VideoChange::threadForDetectChangeFrame, this, 2*sampledImgVLength/4+1, 3*sampledImgVLength/4, pixelThreshold };
-		thread t4{ &VideoChange::threadForDetectChangeFrame, this, 3*sampledImgVLength/4+1, sampledImgVLength, pixelThreshold };
+		//thread t1{&VideoChange::threadForDetectChangeFrame, this, 0, sampledImgVLength/4, pixelThreshold };
+		//thread t2{&VideoChange::threadForDetectChangeFrame, this, sampledImgVLength/4+1, sampledImgVLength/4, pixelThreshold};
+		//thread t3{ &VideoChange::threadForDetectChangeFrame, this, 2*sampledImgVLength/4+1, 3*sampledImgVLength/4, pixelThreshold };
+		//thread t4{ &VideoChange::threadForDetectChangeFrame, this, 3*sampledImgVLength/4+1, sampledImgVLength, pixelThreshold };
 
-		t1.join();
-		t2.join();
-		t3.join();
-		t4.join();
+		//t1.join();
+		//t2.join();
+		//t3.join();
+		//t4.join();
 
 		cout << "thread is finished" << endl;
 

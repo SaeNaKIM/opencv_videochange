@@ -28,7 +28,7 @@ int main() {
 	double sum_push = 0;
 
 	clock_t begin, read_begin, read_end, sampling_end, total_end, 
-		preprocess_begin, preprocess_end, push_begin, push_end;
+		preprocess_begin, preprocess_end, push_begin, push_end, background_end  ;
 
 	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.mp4";
 	VideoCapture cap(videoFilename);
@@ -83,6 +83,7 @@ int main() {
 
 	sampling_end = clock();
 	VC.backgroundEstimation(background, BG_MEAN);
+	background_end = clock();
 	
 	VC.setOutFilename("video_change");
 	VC.detectChangeFrame(DT_PIXEL, 0.06);
@@ -104,7 +105,8 @@ int main() {
 	cout << "image preprocess execution time:" << sum_pre / CLOCKS_PER_SEC << endl;
 	cout << "average read execution time per frame:" << sum_read / CLOCKS_PER_SEC / frameCount << endl;
 	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
-	cout << "change detect execution time:" << (total_end - sampling_end) / CLOCKS_PER_SEC << endl;
+	cout << "background estimation execution time:" << (background_end - sampling_end) / CLOCKS_PER_SEC << endl;
+	cout << "change detect execution time:" << (total_end - background_end) / CLOCKS_PER_SEC << endl;
 	cout << "total execution time:" << (total_end - begin) / CLOCKS_PER_SEC << endl;
 	system("pause");
 	
