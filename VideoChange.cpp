@@ -32,14 +32,63 @@ void VideoChange::videoInfoPrint() {
 	/*--------------------------------------------------------*/
 
 }
-void VideoChange::preprocess(Mat &src, Mat &dst) {
+void VideoChange::preprocess(Mat &src, Mat dst) {
 
+	//Mat tempSrcL; 
+	//Mat tempSrcR; 
+
+	Mat tempDst1;
+	Mat tempDst2;
+	Mat tempDst3;
+	Mat tempDst4;
+	Mat tempDst5;
+	Mat tempDst6;
+	Mat tempDst7;
+	Mat tempDst8;
+
+	//src(Rect(0, 0, src.cols / 2, src.rows)).copyTo(tempSrcL);
+	//src(Rect(src.cols / 2, 0, src.cols / 2, src.rows)).copyTo(tempSrcR);
+
+	thread t1(&VideoChange::threadforpreprocess, this, src(Rect(0, 0, src.cols / 4, src.rows / 2)), dst(Rect(0, 0, dst.cols / 4, dst.rows / 2)));
+	thread t2(&VideoChange::threadforpreprocess, this, src(Rect(src.cols / 4 + 1, 0, src.cols / 4, src.rows / 2)), dst(Rect(dst.cols / 4 + 1, 0, dst.cols / 4, dst.rows / 2)));
+	
+	/*
+	thread t3(&VideoChange::threadforpreprocess, this, src(Rect(2 * src.cols / 4 + 1, 0, src.cols / 4, src.rows / 2)), dst(Rect(2 * dst.cols / 4 + 1, 0, dst.cols / 4, dst.rows / 2)));
+	thread t4(&VideoChange::threadforpreprocess, this, src(Rect(3 * src.cols / 4 + 1, 0, src.cols / 4 - 1, src.rows / 2)), dst(Rect(3 * dst.cols / 4 + 1, 0, dst.cols / 4 - 1, dst.rows / 2)));
+
+	thread t5(&VideoChange::threadforpreprocess, this, src(Rect(0, src.rows / 2, src.cols / 4, src.rows / 2)), dst(Rect(0, dst.rows / 2, dst.cols / 4, dst.rows / 2)));
+	thread t6(&VideoChange::threadforpreprocess, this, src(Rect(src.cols / 4 + 1, src.rows / 2, src.cols / 4, src.rows / 2)), dst(Rect(dst.cols / 4 + 1, dst.rows / 2, dst.cols / 4, dst.rows / 2)));
+	thread t7(&VideoChange::threadforpreprocess, this, src(Rect(2 * src.cols / 4 + 1, src.rows / 2, src.cols / 4, src.rows / 2)), dst(Rect(2 * dst.cols / 4 + 1, dst.rows / 2, dst.cols / 4, dst.rows / 2)));
+	thread t8(&VideoChange::threadforpreprocess, this, src(Rect(3 * src.cols / 4 + 1, src.rows / 2, src.cols / 4 - 1, src.rows / 2)), dst(Rect(3 * dst.cols / 4 + 1, dst.rows / 2, dst.cols / 4 - 1, dst.rows / 2)));
+	*/
+	t1.join();
+	t2.join();
+
+	/*t3.join();
+	t4.join();
+	t5.join();
+	t6.join();
+	t7.join();
+	t8.join();
+*/
+	/*mutex_lock.lock();
+	imshow("dst", tempDstR);
+	waitKey(0);
+	mutex_lock.unlock();*/
+
+	//dst(Rect(0, 0, tempDstL.cols, tempDstL.rows)) = tempDstL.clone();
+	//dst(Rect(tempDstR.cols, 0, tempDstR.cols, tempDstR.rows)) = tempDstR.clone();
+}
+void VideoChange::threadforpreprocess(Mat src, Mat dst) {
+
+	
 	Mat gray;
 	Mat resizeMat;
 
 	cvtColor(src, gray, CV_BGR2GRAY); // convert channel 3 to 1 
 	resize(gray, resizeMat, Size(gray.cols / 4, gray.rows / 4));
-	//GaussianBlur(resizeMat, dst, Size(3,3),0); //Blurring 
+	GaussianBlur(resizeMat, dst, Size(3, 3), 0); //Blurring 
+
 
 }
 void VideoChange::samplingVideoFrame(Mat frame) {
@@ -66,8 +115,8 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 		for (int i = 0; i < sampledImgV.size(); i++) {
 
-			GaussianBlur(sampledImgV[i], sampledImgV[i], Size(3, 3), 0);
-			accumulateWeighted(blur, sum, 1.0 / sampledImgL);
+			//GaussianBlur(sampledImgV[i], sampledImgV[i], Size(3, 3), 0);
+			accumulateWeighted(sampledImgV[i], sum, 1.0 / sampledImgL);
 		}
 
 		convertScaleAbs(sum, this->background);
@@ -92,7 +141,7 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 	background = this->background.clone();
 	end = clock();
-	cout << "background time in func: " << (double)end - begin / CLOCKS_PER_SEC;
+	cout << "background time in func: " << end - begin << endl;
 	return;
 }
 void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelThreshold)
@@ -164,9 +213,11 @@ void VideoChange::threadForDetectChangeFrame2(Mat &src, Mat &dst, int i)
 		//waitKey(0);
 	}
 
-	changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+	//changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+	mutex_lock.lock();
+	changeRateArrN[i] += changeRate;
+	mutex_lock.unlock();																		  
 
-																								   //}
 
 	return;
 }
@@ -183,15 +234,25 @@ void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 
 		equalizeHist(this->background, this->background);
 
-		//thread t1{&VideoChange::threadForDetectChangeFrame, this, 0, sampledImgVLength/4, pixelThreshold };
-		//thread t2{&VideoChange::threadForDetectChangeFrame, this, sampledImgVLength/4+1, sampledImgVLength/4, pixelThreshold};
-		//thread t3{ &VideoChange::threadForDetectChangeFrame, this, 2*sampledImgVLength/4+1, 3*sampledImgVLength/4, pixelThreshold };
-		//thread t4{ &VideoChange::threadForDetectChangeFrame, this, 3*sampledImgVLength/4+1, sampledImgVLength, pixelThreshold };
+		thread t1{&VideoChange::threadForDetectChangeFrame1, this, 0, sampledImgVLength/2, pixelThreshold };
+		thread t2{&VideoChange::threadForDetectChangeFrame1, this, sampledImgVLength/2+1, sampledImgVLength, pixelThreshold};
+		/*thread t3{ &VideoChange::threadForDetectChangeFrame1, this, 2*sampledImgVLength/8+1, 3*sampledImgVLength/8, pixelThreshold };
+		thread t4{ &VideoChange::threadForDetectChangeFrame1, this, 3*sampledImgVLength/8+1, 4*sampledImgVLength / 8, pixelThreshold };
+		thread t5{ &VideoChange::threadForDetectChangeFrame1, this, 4 * sampledImgVLength / 8 + 1, 5*sampledImgVLength / 8, pixelThreshold };
+		thread t6{ &VideoChange::threadForDetectChangeFrame1, this, 5*sampledImgVLength / 8 + 1, 6 * sampledImgVLength / 8, pixelThreshold };
+		thread t7{ &VideoChange::threadForDetectChangeFrame1, this, 6 * sampledImgVLength / 8 + 1, 7 * sampledImgVLength / 8, pixelThreshold };
+		thread t8{ &VideoChange::threadForDetectChangeFrame1, this, 7 * sampledImgVLength / 8 + 1, sampledImgVLength, pixelThreshold };
+		*/
 
-		//t1.join();
-		//t2.join();
-		//t3.join();
-		//t4.join();
+		t1.join();
+		t2.join();
+		/*t3.join();
+		t4.join();
+		t5.join();
+		t6.join();
+		t7.join();
+		t8.join();*/
+
 
 		cout << "thread is finished" << endl;
 
@@ -201,7 +262,7 @@ void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 	}
 
 	end = clock();
-	cout << "change detection time in func: " << (double)end - begin / CLOCKS_PER_SEC;
+	cout << "change detection time in func: " << end - begin << endl;
 
 	return;
 }
@@ -260,6 +321,14 @@ void VideoChange::setOutFilename(string filename)
 	this->outFile.open(filename + ".csv");
 	strcpy(this->directory, filename.c_str());
 	changeRateArr = new string[this->sampledImgV.size()];
+	changeRateArrN = new int[this->sampledImgV.size()];
+
+	for (int i = 0; i < this->sampledImgV.size(); i++) {
+		
+		changeRateArrN[i] = 0;
+	
+	}
+
 
 	// make directory 
 	int nResult = _mkdir(this->directory);
@@ -298,7 +367,9 @@ void VideoChange::writeChangeRate() {
 
 	for (int i = 0; i < sampledImgV.size(); i++) {
 
-		outFile << changeRateArr[i];
+		//changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string( changeRateArrN[i]) + "\n"; // n-th frame 
+		outFile << to_string(i*this->sample / this->fps) + "," + to_string(changeRateArrN[i]) + "\n"; // n-th frame 
+		//outFile << changeRateArr[i];
 	}
 }
 void VideoChange::storeChangeRate(string storeValue) {

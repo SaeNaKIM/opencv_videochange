@@ -15,6 +15,7 @@ private :
 	string filename;
 	vector<Mat> sampledImgV;
 	string *changeRateArr;
+	int *changeRateArrN;
 	Mat background;
 	Mat background_left;
 	Mat background_right;
@@ -45,7 +46,9 @@ public :
 
 	void videoInfoPrint();
 
-	void samplingVideoFrame(Mat Frame);  
+	void threadforpreprocess(Mat src, Mat  dst);
+
+	void samplingVideoFrame(Mat Frame);
 
 	void backgroundEstimation( Mat &background, int type );
 	
@@ -61,7 +64,9 @@ public :
 
 	void storeChangeRate(string storeValue);
 
-	void preprocess(Mat &src, Mat &dst);
+	void preprocess(Mat &src, Mat dst);
+	
+	//void theadforpreprocess(Mat &src, Mat &dst);
 
 	void controlVideo(int key, double curFrameLoc);
 

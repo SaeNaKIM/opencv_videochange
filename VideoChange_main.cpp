@@ -34,7 +34,7 @@ int main() {
 	VideoCapture cap(videoFilename);
 
 	Mat frame;
-	Mat grayFrame;
+	Mat grayFrame = Mat::zeros(Size(495,270),CV_8UC1);
 	Mat background;
 	
 	
@@ -64,7 +64,8 @@ int main() {
 		sum_read += read_end - read_begin;
 		
 		preprocess_begin = clock();
-		VC.preprocess(frame, grayFrame);
+		VC.preprocess(frame, grayFrame); // thread 적용지점 
+	
 		preprocess_end = clock();
 		sum_pre += preprocess_end - preprocess_begin;
 
