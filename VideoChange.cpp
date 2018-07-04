@@ -117,7 +117,7 @@ void VideoChange::samplingVideoFrame(VideoCapture cap) {
 	//thread t2(&VideoChange::threadsamplingVideoFrame, this, cap, nframe/2 + 1, nframe);
 
 	t1.join();
-	//t2.joint();
+	//t2.join();
 
 	cout << "sampling thread is completed\n";
 	return;
