@@ -6,6 +6,7 @@
 #include <direct.h>
 #include <thread>
 #include <mutex>
+#include <map>
 #include "VideoChange.h"
 
 
@@ -109,8 +110,14 @@ void VideoChange::threadforpreprocess(Mat src, Mat &dst) {
 void VideoChange::samplingVideoFrame(VideoCapture cap) {
 
 	
+	int nframe = this->nframe; 
+	
+
 	thread t1(&VideoChange::threadsamplingVideoFrame, this, cap, 0, this->nframe);
+	//thread t2(&VideoChange::threadsamplingVideoFrame, this, cap, nframe/2 + 1, nframe);
+
 	t1.join();
+	//t2.joint();
 
 	cout << "sampling thread is completed\n";
 	return;
@@ -128,8 +135,14 @@ void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end)
 		preprocess(frame, grayFrame);
 		this->sampledImgV.push_back(grayFrame);
 
+		//mutex_lock.lock();
+		//this->sampledImgM.insert(make_pair(i,grayFrame));
+		//mutex_lock.unlock();	
+		
 		mutex_lock.lock();
 		imshow("sampling Frame", grayFrame);
+		cout << to_string(i) << "th frame\n";
+
 		waitKey(1);
 		mutex_lock.unlock();
 
@@ -209,6 +222,13 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 
 		equalizeHist(sampledImgV[i], hist_frame);
 		absImg = abs(hist_frame - this->background);
+	
+		//imshow("hist_frame", hist_frame);
+		//imshow("absImg", absImg);
+		//waitKey(0)
+		
+		
+		
 		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
 		nonZeroCnt = countNonZero(thresholdImg);
 		changeRate = (double)nonZeroCnt / imgSize;

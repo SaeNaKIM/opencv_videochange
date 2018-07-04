@@ -1,6 +1,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <mutex>
+#include <map>
 
 
 using namespace std;
@@ -14,6 +15,7 @@ private :
 	
 	string filename;
 	vector<Mat> sampledImgV;
+	map<int,Mat> sampledImgM;
 	string *changeRateArr;
 	int *changeRateArrN;
 	Mat background;
