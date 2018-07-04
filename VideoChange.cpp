@@ -1,3 +1,4 @@
+#pragma omp parallel for
 #define  _CRT_SECURE_NO_WARNINGS
 #include <iostream> 
 #include <opencv2/opencv.hpp>
@@ -32,27 +33,31 @@ void VideoChange::videoInfoPrint() {
 	/*--------------------------------------------------------*/
 
 }
-void VideoChange::preprocess(Mat &src, Mat dst) {
+void VideoChange::preprocess(Mat &src, Mat &dst) {
 
-	//Mat tempSrcL; 
-	//Mat tempSrcR; 
 
-	Mat tempDst1;
+
+	Mat gray;
+	Mat resizeMat;
+
+	cvtColor(src, gray, CV_BGR2GRAY); // convert channel 3 to 1 
+	resize(gray, resizeMat, Size(gray.cols / 4, gray.rows / 4));
+	GaussianBlur(resizeMat, dst, Size(3, 3), 0); //Blurring 
+
+	
+	/*Mat tempDst1;
 	Mat tempDst2;
+
 	Mat tempDst3;
 	Mat tempDst4;
 	Mat tempDst5;
 	Mat tempDst6;
 	Mat tempDst7;
-	Mat tempDst8;
+	Mat tempDst8;*/
 
-	//src(Rect(0, 0, src.cols / 2, src.rows)).copyTo(tempSrcL);
-	//src(Rect(src.cols / 2, 0, src.cols / 2, src.rows)).copyTo(tempSrcR);
-
-	thread t1(&VideoChange::threadforpreprocess, this, src(Rect(0, 0, src.cols / 4, src.rows / 2)), dst(Rect(0, 0, dst.cols / 4, dst.rows / 2)));
-	thread t2(&VideoChange::threadforpreprocess, this, src(Rect(src.cols / 4 + 1, 0, src.cols / 4, src.rows / 2)), dst(Rect(dst.cols / 4 + 1, 0, dst.cols / 4, dst.rows / 2)));
-	
 	/*
+	thread t1(&VideoChange::threadforpreprocess, this, src(Rect(0, 0, src.cols / 2, src.rows )),std::ref(tempDst1));
+	thread t2(&VideoChange::threadforpreprocess, this, src(Rect(src.cols / 2 + 1, 0, src.cols / 2, src.rows )), std::ref(tempDst2));
 	thread t3(&VideoChange::threadforpreprocess, this, src(Rect(2 * src.cols / 4 + 1, 0, src.cols / 4, src.rows / 2)), dst(Rect(2 * dst.cols / 4 + 1, 0, dst.cols / 4, dst.rows / 2)));
 	thread t4(&VideoChange::threadforpreprocess, this, src(Rect(3 * src.cols / 4 + 1, 0, src.cols / 4 - 1, src.rows / 2)), dst(Rect(3 * dst.cols / 4 + 1, 0, dst.cols / 4 - 1, dst.rows / 2)));
 
@@ -61,25 +66,35 @@ void VideoChange::preprocess(Mat &src, Mat dst) {
 	thread t7(&VideoChange::threadforpreprocess, this, src(Rect(2 * src.cols / 4 + 1, src.rows / 2, src.cols / 4, src.rows / 2)), dst(Rect(2 * dst.cols / 4 + 1, dst.rows / 2, dst.cols / 4, dst.rows / 2)));
 	thread t8(&VideoChange::threadforpreprocess, this, src(Rect(3 * src.cols / 4 + 1, src.rows / 2, src.cols / 4 - 1, src.rows / 2)), dst(Rect(3 * dst.cols / 4 + 1, dst.rows / 2, dst.cols / 4 - 1, dst.rows / 2)));
 	*/
+
+	/*
 	t1.join();
 	t2.join();
-
-	/*t3.join();
+	t3.join();
 	t4.join();
 	t5.join();
 	t6.join();
 	t7.join();
 	t8.join();
-*/
-	/*mutex_lock.lock();
-	imshow("dst", tempDstR);
+	*/
+
+	//tempDst1.copyTo(dst(Rect(0, 0, dst.cols / 4, dst.rows / 2))) ;
+	//tempDst2.copyTo(dst(Rect(dst.cols / 4 + 1, 0, dst.cols / 4, dst.rows / 2)));
+
+
+	/*
+	mutex_lock.lock();
+	imshow("dst", dst);
+	imshow("dst1", tempDst1);
+	imshow("dst2", tempDst2);
 	waitKey(0);
-	mutex_lock.unlock();*/
+	mutex_lock.unlock();
+	*/
 
 	//dst(Rect(0, 0, tempDstL.cols, tempDstL.rows)) = tempDstL.clone();
 	//dst(Rect(tempDstR.cols, 0, tempDstR.cols, tempDstR.rows)) = tempDstR.clone();
 }
-void VideoChange::threadforpreprocess(Mat src, Mat dst) {
+void VideoChange::threadforpreprocess(Mat src, Mat &dst) {
 
 	
 	Mat gray;
@@ -90,6 +105,41 @@ void VideoChange::threadforpreprocess(Mat src, Mat dst) {
 	GaussianBlur(resizeMat, dst, Size(3, 3), 0); //Blurring 
 
 
+}
+void VideoChange::samplingVideoFrame(VideoCapture cap) {
+
+	
+	thread t1(&VideoChange::threadsamplingVideoFrame, this, cap, 0, this->nframe);
+	t1.join();
+
+	cout << "sampling thread is completed\n";
+	return;
+
+}
+void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end)
+{
+	Mat frame, grayFrame;
+	int key;
+
+	for (int i = begin; i < end; i += this->sample) {
+		
+		cap.set(CV_CAP_PROP_POS_FRAMES, i);
+		cap.read(frame);
+		preprocess(frame, grayFrame);
+		this->sampledImgV.push_back(grayFrame);
+
+		mutex_lock.lock();
+		imshow("sampling Frame", grayFrame);
+		waitKey(1);
+		mutex_lock.unlock();
+
+		// thread 안에서 해결 가능한지 모름.
+		//if (key == 27) { //ESC
+		//	cout << "terminated during sampling video" << endl;
+		//	break;
+		//}
+
+	}
 }
 void VideoChange::samplingVideoFrame(Mat frame) {
 
@@ -321,14 +371,13 @@ void VideoChange::setOutFilename(string filename)
 	this->outFile.open(filename + ".csv");
 	strcpy(this->directory, filename.c_str());
 	changeRateArr = new string[this->sampledImgV.size()];
-	changeRateArrN = new int[this->sampledImgV.size()];
+	//changeRateArrN = new int[this->sampledImgV.size()];
 
-	for (int i = 0; i < this->sampledImgV.size(); i++) {
+	/*for (int i = 0; i < this->sampledImgV.size(); i++) {
 		
 		changeRateArrN[i] = 0;
 	
-	}
-
+	}*/
 
 	// make directory 
 	int nResult = _mkdir(this->directory);
@@ -368,8 +417,8 @@ void VideoChange::writeChangeRate() {
 	for (int i = 0; i < sampledImgV.size(); i++) {
 
 		//changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string( changeRateArrN[i]) + "\n"; // n-th frame 
-		outFile << to_string(i*this->sample / this->fps) + "," + to_string(changeRateArrN[i]) + "\n"; // n-th frame 
-		//outFile << changeRateArr[i];
+		//outFile << to_string(i*this->sample / this->fps) + "," + to_string(changeRateArrN[i]) + "\n"; // n-th frame 
+		outFile << changeRateArr[i];
 	}
 }
 void VideoChange::storeChangeRate(string storeValue) {

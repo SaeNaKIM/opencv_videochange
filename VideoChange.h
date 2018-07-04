@@ -20,6 +20,8 @@ private :
 	Mat background_left;
 	Mat background_right;
 	ofstream outFile;
+	VideoCapture cap1;
+	VideoCapture cap2;
 
 	double dstFrameLoc;
 
@@ -46,9 +48,13 @@ public :
 
 	void videoInfoPrint();
 
-	void threadforpreprocess(Mat src, Mat  dst);
+	void threadforpreprocess(Mat src, Mat  &dst);
+
+	void threadsamplingVideoFrame(VideoCapture cap, int begin, int end);
 
 	void samplingVideoFrame(Mat Frame);
+
+	void samplingVideoFrame(VideoCapture cap);
 
 	void backgroundEstimation( Mat &background, int type );
 	
@@ -64,7 +70,7 @@ public :
 
 	void storeChangeRate(string storeValue);
 
-	void preprocess(Mat &src, Mat dst);
+	void preprocess(Mat &src, Mat &dst);
 	
 	//void theadforpreprocess(Mat &src, Mat &dst);
 

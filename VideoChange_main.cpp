@@ -2,6 +2,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <time.h>
+#include <map>
 #include "VideoChange.h"
 
 
@@ -31,82 +32,87 @@ int main() {
 		preprocess_begin, preprocess_end, push_begin, push_end, background_end  ;
 
 	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.mp4";
-	VideoCapture cap(videoFilename);
+	VideoCapture capStream1(videoFilename);
+	//VideoCapture capStream2(videoFilename);
 
 	Mat frame;
+	//Mat frame2;
 	Mat grayFrame = Mat::zeros(Size(495,270),CV_8UC1);
 	Mat background;
 	
 	
-	if (!cap.isOpened()) {
+	if (!capStream1.isOpened()) {
 		cerr << "Video File Open Error" << endl;
 		exit(1);
 	}
 
-	VideoChange VC(videoFilename, cap);
+	VideoChange VC(videoFilename, capStream1);
 	VC.videoInfoPrint(); 
 	VC.setSamplingRate(SampleRate);
 	sample = VC.getSampleNumber();
 	
+	// video sampling
 	begin = clock();
+	VC.samplingVideoFrame(capStream1);
+	sampling_end = clock();
 
 	//video sampling
-	while (1)
-	{
-		read_begin = clock();
-		cap.set(CV_CAP_PROP_POS_FRAMES, frameCount * sample); 
-		
-		if (!cap.read(frame))
-			break;
-		frameCount++;
+	//while (1)
+	//{
+	//	read_begin = clock();
+	//	capStream1.set(CV_CAP_PROP_POS_FRAMES, frameCount * sample);
+	//	//capStream2.set(CV_CAP_PROP_POS_FRAMES, frameCount * sample);
+	//	
+	//	if (!capStream1.read(frame) || !capStream2.read(frame2))
+	//		break;
+	//	
+	//	frameCount++;
+	//	read_end = clock();
+	//	sum_read += read_end - read_begin;
+	//	
+	//	preprocess_begin = clock();
+	//	VC.preprocess(frame, grayFrame); // thread 적용지점 
+	//	preprocess_end = clock();
+	//	sum_pre += preprocess_end - preprocess_begin;
 
-		read_end = clock();
-		sum_read += read_end - read_begin;
-		
-		preprocess_begin = clock();
-		VC.preprocess(frame, grayFrame); // thread 적용지점 
-	
-		preprocess_end = clock();
-		sum_pre += preprocess_end - preprocess_begin;
+	//	VC.samplingVideoFrame(grayFrame); 
 
-		VC.samplingVideoFrame(grayFrame); 
+	//	imshow("sampling Frame2", frame2);
+	//	imshow("sampling Frame", grayFrame);
+	//	key = waitKey(1);
 
-		imshow("sampling Frame", grayFrame);
-		key = waitKey(1);
+	//	if (key == 27) { //ESC
+	//		cout << "terminated during sampling video" << endl;
+	//		break;
+	//	}
+	//}
 
-		if (key == 27) { //ESC
-			cout << "terminated during sampling video" << endl;
-			break;
-		}
-
-
-	}
-
-	sampling_end = clock();
 	VC.backgroundEstimation(background, BG_MEAN);
 	background_end = clock();
 	
+
+	//debugging - background result
+	imshow("background", background);
+	waitKey(0);
+
 	VC.setOutFilename("video_change");
 	VC.detectChangeFrame(DT_PIXEL, 0.06);
 	VC.writeChangeRate();
 	total_end = clock();
 
-	//debugging - background result
-	//imshow("background", background);
-	//waitKey(0);
 
 	//release resource
 	destroyAllWindows();
 	VC.clear();
-	cap.release();
+	capStream1.release();
 
 	// image processing result 
-	cout << "sampling frame: " << frameCount << endl;
-	cout << "image read execution time:" << sum_read / CLOCKS_PER_SEC  << endl;
-	cout << "image preprocess execution time:" << sum_pre / CLOCKS_PER_SEC << endl;
-	cout << "average read execution time per frame:" << sum_read / CLOCKS_PER_SEC / frameCount << endl;
+	//cout << "sampling frame: " << frameCount << endl;
+	//cout << "image read execution time:" << sum_read / CLOCKS_PER_SEC  << endl;
+	//cout << "image preprocess execution time:" << sum_pre / CLOCKS_PER_SEC << endl;
+	//cout << "average read execution time per frame:" << sum_read / CLOCKS_PER_SEC / frameCount << endl;
 	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
-	cout << "background estimation execution time:" << (background_end - sampling_end) / CLOCKS_PER_SEC << endl;
+	cout << "background estimation execution time:" << (background_end - sampling_end) << "mileseconds"<< endl;
 	cout << "change detect execution time:" << (total_end - background_end) / CLOCKS_PER_SEC << endl;
 	cout << "total execution time:" << (total_end - begin) / CLOCKS_PER_SEC << endl;
 	system("pause");
