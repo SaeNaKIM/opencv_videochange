@@ -52,11 +52,13 @@ public :
 
 	void threadforpreprocess(Mat src, Mat  &dst);
 
-	void threadsamplingVideoFrame(VideoCapture cap, int begin, int end);
+	void threadsamplingVideoFrame(VideoCapture cap, int begin, int end, string windowname);
 
 	void samplingVideoFrame(Mat Frame);
 
-	void samplingVideoFrame(VideoCapture cap);
+	void samplingVideoFrame(VideoCapture cap, VideoCapture cap2);
+
+	void samplingVideoFrame(VideoCapture cap, VideoCapture cap2, VideoCapture cap3, VideoCapture cap4 );
 
 	void backgroundEstimation( Mat &background, int type );
 	

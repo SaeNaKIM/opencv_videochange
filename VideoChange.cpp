@@ -1,4 +1,4 @@
-#pragma omp parallel for
+//#pragma omp parallel for
 #define  _CRT_SECURE_NO_WARNINGS
 #include <iostream> 
 #include <opencv2/opencv.hpp>
@@ -107,44 +107,66 @@ void VideoChange::threadforpreprocess(Mat src, Mat &dst) {
 
 
 }
-void VideoChange::samplingVideoFrame(VideoCapture cap) {
+void VideoChange::samplingVideoFrame(VideoCapture cap1, VideoCapture cap2) {
 
 	
 	int nframe = this->nframe; 
 	
 
-	thread t1(&VideoChange::threadsamplingVideoFrame, this, cap, 0, this->nframe);
-	//thread t2(&VideoChange::threadsamplingVideoFrame, this, cap, nframe/2 + 1, nframe);
+	thread t1(&VideoChange::threadsamplingVideoFrame, this, cap1, 0, nframe/2, "cap1");
+	thread t2(&VideoChange::threadsamplingVideoFrame, this, cap2, nframe/2 + 1, nframe, "cap2");
 
 	t1.join();
-	//t2.join();
+	t2.join();
 
 	cout << "sampling thread is completed\n";
 	return;
 
 }
-void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end)
+void VideoChange::samplingVideoFrame(VideoCapture cap1, VideoCapture cap2, VideoCapture cap3, VideoCapture cap4)
 {
-	Mat frame, grayFrame;
+	int nframe = this->nframe;
+
+
+	thread t1(&VideoChange::threadsamplingVideoFrame, this, cap1, 0, nframe / 4, "cap1");
+	thread t2(&VideoChange::threadsamplingVideoFrame, this, cap2, nframe / 4 + 1, 2 * nframe /4, "cap2");
+	thread t3(&VideoChange::threadsamplingVideoFrame, this, cap3,  2 * nframe / 4 + 1, 3 * nframe /4 , "cap3");
+	thread t4(&VideoChange::threadsamplingVideoFrame, this, cap4, 3 * nframe / 4 + 1,nframe, "cap4");
+
+	t1.join();
+	t2.join();
+	t3.join();
+	t4.join();
+
+	cout << "sampling thread is completed\n";
+	return;
+}
+void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end, string windowname)
+{
 	int key;
 
 	for (int i = begin; i < end; i += this->sample) {
 		
+		
+		Mat frame, grayFrame;
+
 		cap.set(CV_CAP_PROP_POS_FRAMES, i);
 		cap.read(frame);
 		preprocess(frame, grayFrame);
-		this->sampledImgV.push_back(grayFrame);
 
-		//mutex_lock.lock();
-		//this->sampledImgM.insert(make_pair(i,grayFrame));
-		//mutex_lock.unlock();	
-		
 		mutex_lock.lock();
-		imshow("sampling Frame", grayFrame);
-		cout << to_string(i) << "th frame\n";
-
+		this->sampledImgM.insert(make_pair(i,grayFrame));
+		imshow(windowname, grayFrame);
 		waitKey(1);
-		mutex_lock.unlock();
+		mutex_lock.unlock();	
+		
+		//vector debog
+		//mutex_lock.lock();
+		//this->sampledImgV.push_back(grayFrame);
+		//imshow("sampling Frame", grayFrame);
+		//waitKey(1);
+		////cout << to_string(i) << "th frame\n";
+		//mutex_lock.unlock();
 
 		// thread 안에서 해결 가능한지 모름.
 		//if (key == 27) { //ESC
@@ -157,29 +179,34 @@ void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end)
 void VideoChange::samplingVideoFrame(Mat frame) {
 
 	Mat tmp;
-	tmp = frame.clone();
+	tmp = frame.clone(); //왜 복사해서 넣었지...?
 	sampledImgV.push_back(tmp); // 언제 clear 해줄건지 정해야함. * 벡터를 신중히 다룹시다..
 
 }
-void VideoChange::backgroundEstimation(Mat &background, int type) {
+ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 	clock_t begin, end;
 	begin = clock();
 
-	Mat sum = Mat::zeros(sampledImgV[0].size(), CV_32FC1);
+	Mat sum = Mat::zeros(sampledImgM[0].size(), CV_32FC1);
 	Mat temp;
 	Mat avg;
 	Mat blur;
 
-	double sampledImgL = sampledImgV.size();
+	map<int, Mat>::iterator iter;
+	double sampledImgL = sampledImgM.size();
 
 
 	if (type == 1) { // mean 
 
-		for (int i = 0; i < sampledImgV.size(); i++) {
+		for (iter = sampledImgM.begin(); iter != sampledImgM.end(); iter++) {
 
-			//GaussianBlur(sampledImgV[i], sampledImgV[i], Size(3, 3), 0);
-			accumulateWeighted(sampledImgV[i], sum, 1.0 / sampledImgL);
+			//debug
+			/*imshow("frame push check", iter->second);
+			waitKey(0);*/
+			
+			accumulateWeighted(iter->second, sum, 1.0 / sampledImgL);
+			
 		}
 
 		convertScaleAbs(sum, this->background);
@@ -204,29 +231,31 @@ void VideoChange::backgroundEstimation(Mat &background, int type) {
 
 	background = this->background.clone();
 	end = clock();
-	cout << "background time in func: " << end - begin << endl;
+	cout << "background time in func: " << end - begin << " mileseconds"<< endl;
 	return;
 }
 void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelThreshold)
 {
 	int nonZeroCnt = 0;
 	double changeRate = 0.0f;
-	int imgSize = sampledImgV[begin].rows * sampledImgV[begin].cols;
+	int imgSize = sampledImgM[begin].rows * sampledImgM[begin].cols;
 
 	Mat hist_frame;
 	Mat absImg;
 	Mat thresholdImg;
 
-	for (int i = begin; i < end; i++) {
+	map<int, Mat>::iterator iter;
+	int i ;
+	for (iter = sampledImgM.begin(), i = begin; iter != sampledImgM.find(end * this->sample); iter++, i++){
 
-
-		equalizeHist(sampledImgV[i], hist_frame);
+		equalizeHist(iter->second, hist_frame);
 		absImg = abs(hist_frame - this->background);
-	
-		//imshow("hist_frame", hist_frame);
-		//imshow("absImg", absImg);
-		//waitKey(0)
 		
+		mutex_lock.lock();
+		imshow("hist_frame", hist_frame);
+		imshow("absImg", absImg);
+		waitKey(0);
+		mutex_lock.unlock();
 		
 		
 		threshold(absImg, thresholdImg, 50, 255, THRESH_BINARY);
@@ -238,7 +267,7 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 
 			// store image and time of the frame 
 			string filename = string(this->directory) + "\\frame_" + to_string(i*this->sample / this->fps) + ".png";
-			imwrite(filename, sampledImgV[i]);
+			imwrite(filename, sampledImgM[i]);
 
 			//debugging    
 			//imshow("change image", sampledImgV[i]);
@@ -247,7 +276,8 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 			//waitKey(0);
 		}
 
-		changeRateArr[i] = to_string(i*this->sample / this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+		changeRateArr[i] = to_string(i * this->sample/ this->fps) + "," + to_string(changeRate) + "\n"; // n-th frame 
+		//i++;
 
 	}
 
@@ -298,14 +328,14 @@ void VideoChange::detectChangeFrame(int detectType, double pixelThreshold) {
 	begin = clock();
 
 	Mat absImg;
-	int sampledImgVLength = sampledImgV.size();
+	int sampledImgVLength = this->sampledImgM.size();
 
-	if (detectType == 1) { // pixel 
+   if (detectType == 1) { // pixel 
 
 		equalizeHist(this->background, this->background);
 
 		thread t1{&VideoChange::threadForDetectChangeFrame1, this, 0, sampledImgVLength/2, pixelThreshold };
-		thread t2{&VideoChange::threadForDetectChangeFrame1, this, sampledImgVLength/2+1, sampledImgVLength, pixelThreshold};
+		thread t2{&VideoChange::threadForDetectChangeFrame1, this,  sampledImgVLength/2+1, sampledImgVLength, pixelThreshold};
 		/*thread t3{ &VideoChange::threadForDetectChangeFrame1, this, 2*sampledImgVLength/8+1, 3*sampledImgVLength/8, pixelThreshold };
 		thread t4{ &VideoChange::threadForDetectChangeFrame1, this, 3*sampledImgVLength/8+1, 4*sampledImgVLength / 8, pixelThreshold };
 		thread t5{ &VideoChange::threadForDetectChangeFrame1, this, 4 * sampledImgVLength / 8 + 1, 5*sampledImgVLength / 8, pixelThreshold };
@@ -425,6 +455,7 @@ void VideoChange::setSamplingRate(double samplingRate)
 void VideoChange::clear()
 {
 	this->sampledImgV.clear();
+	this->sampledImgM.clear();
 	delete[]changeRateArr;
 
 }
