@@ -20,12 +20,7 @@ const int DT_BLOB = 2;
 
 int main() {
 
-
 	double SampleRate = 1;
-	int frameCount = 0.0;
-	double sum_read = 0;
-	double sum_pre = 0;
-	double sum_push = 0;
 
 	// for computing time 
 	clock_t begin, read_begin, read_end, sampling_end, total_end, 
@@ -34,15 +29,13 @@ int main() {
 	string videoFilename = "C:\\Users\\Dev3Team\\Documents\\2.mp4";
 	VideoCapture capStream1(videoFilename);
 	VideoCapture capStream2(videoFilename);
-	//VideoCapture capStream3(videoFilename);
-	//VideoCapture capStream4(videoFilename);
 
 	Mat frame;
 	Mat grayFrame = Mat::zeros(Size(495,270),CV_8UC1);
 	Mat background;
 	
 	//video open check
-	if (!capStream1.isOpened() || !capStream2.isOpened() /*|| !capStream3.isOpened() || !capStream4.isOpened()*/) {
+	if (!capStream1.isOpened() || !capStream2.isOpened()) {
 		cerr << "Video File Open Error" << endl;
 		exit(1);
 	}
@@ -55,16 +48,11 @@ int main() {
 	// 1. video sampling
 	begin = clock();
 	VC.samplingVideoFrame(capStream1, capStream2);
-	//VC.samplingVideoFrame(capStream1, capStream2, capStream3, capStream4);
 	sampling_end = clock();
 
 	// 2. background estimatjion - compute average image of sampled images
 	VC.backgroundEstimation(background, BG_MEAN);
 	background_end = clock();
-
-	//debugging - background result
-	/*imshow("background", background);
-	waitKey(0);*/
 
 	// 3. change detection 
 	VC.setOutFilename("video_change");
@@ -76,9 +64,9 @@ int main() {
 
 	//release 
 	destroyAllWindows();
-	VC.clear();
 	capStream1.release();
 	capStream2.release();
+	VC.clear();
 
 	// result
 	cout << "sampling execution time:" << (sampling_end - begin) / CLOCKS_PER_SEC << endl;
