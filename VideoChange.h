@@ -63,10 +63,9 @@ public :
 
 	void detectChangeFrame(int detectType, double pixelThreshold); // compute difference between background image and samplec img and Save the interesting image(.png)
 	
-	void threadForDetectChangeFrame1(int begin, int end, double pixelThreshold);
+	void threadForDetectChangeFrameFront(int begin, int end, double pixelThreshold);
 
-	void threadForDetectChangeFrame2(int begin, int end, double pixelThreshold);
-
+	void threadForDetectChangeFrameBack(int begin, int end, double pixelThreshold);
 	
 	// etc
 	

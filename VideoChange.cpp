@@ -87,7 +87,6 @@ void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end,
 	clock_t begin, end;
 	begin = clock();
 
-	//Mat sum = Mat::zeros(sampledImgM[0].size(), CV_32FC1);
 	Mat sum = Mat::zeros(sampledImgM[0].size(), CV_32FC1);
 	Mat temp;
 	Mat avg;
@@ -139,8 +138,8 @@ void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end,
 
 		 equalizeHist(this->background, this->background);
 
-		 thread t1{ &VideoChange::threadForDetectChangeFrame1, this, 0, this->nframe / 2, pixelThreshold };
-		 thread t2{ &VideoChange::threadForDetectChangeFrame2, this,  0, this->nframe / 2, pixelThreshold };
+		 thread t1{ &VideoChange::threadForDetectChangeFrameFront, this, 0, this->nframe / 2, pixelThreshold };
+		 thread t2{ &VideoChange::threadForDetectChangeFrameBack, this,  0, this->nframe / 2, pixelThreshold };
 		
 
 		 t1.join();
@@ -155,11 +154,13 @@ void VideoChange::threadsamplingVideoFrame(VideoCapture cap, int begin, int end,
 	 }
 	 return;
  }
-void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelThreshold)
+void VideoChange::threadForDetectChangeFrameFront(int begin, int end, double pixelThreshold)
 {
 	int imgSize = sampledImgM[begin * this->sample].rows * sampledImgM[begin * this->sample].cols;
 
 	int i = 0;
+	//map<string, int>::iterator it = mymap.find("Node");
+
 	for (auto it = sampledImgM.cbegin(); it->first < end; ++it, i++){
 
 		Mat curImg = it->second.clone();
@@ -194,7 +195,7 @@ void VideoChange::threadForDetectChangeFrame1(int begin, int end, double pixelTh
 
 	return;
 }
-void VideoChange::threadForDetectChangeFrame2(int begin, int end, double pixelThreshold)
+void VideoChange::threadForDetectChangeFrameBack(int begin, int end, double pixelThreshold)
 {
 
 	int imgSize = sampledImgM[begin * this->sample].rows * sampledImgM[begin * this->sample].cols;
@@ -253,11 +254,11 @@ void VideoChange::setOutFilename(string filename)
 	changeRateArr = new string[this->sampledImgM.size()];
 
 	// make directory 
-	cout << (_mkdir(this->directory) ? "directory creation sucess\n" : "directory creation failed\n ");
+	cout << (_mkdir(this->directory) ? "directory creation failed\n " : "directory creation sucess\n" );  // 0: success 1: fail( already existed.)
 
-	//int nResult = _mkdir(this->directory);
+	//int nresult = _mkdir(this->directory);
 
-	//if (nResult == 0)
+	//if (nresult == 0)
 	//{
 	//	cout << "directory creation sucess" << endl;
 	//}
@@ -285,7 +286,7 @@ double VideoChange::getSampleNumber()
 }
 void VideoChange::writeChangeRate() {
 
-	for (int i = 0; i < changeRateArr->length(); i++) {
+	for (int i = 0; i < sampledImgM.size(); i++) {
 
 		outFile << changeRateArr[i];
 	}
